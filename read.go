@@ -217,9 +217,11 @@ func (r *Read) Run(fn ImportFunc, num ...int) (results *Result, err error) {
 
 		r.wg.Add(1)
 		dataRow++
+
+		currentRow := row
 		// 向携程池提交任务
 		if err = r.concPool.Submit(func() {
-			r.exec(row, columns)
+			r.exec(currentRow, columns)
 			r.wg.Done()
 		}); err != nil {
 			return
