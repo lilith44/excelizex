@@ -3,13 +3,14 @@ package excelizex
 import (
 	"bytes"
 	"fmt"
-	"github.com/cyclonevox/excelizex/extra"
-	"github.com/cyclonevox/excelizex/style"
-	"github.com/xuri/excelize/v2"
 	"io"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/cyclonevox/excelizex/extra"
+	"github.com/cyclonevox/excelizex/style"
+	"github.com/xuri/excelize/v2"
 )
 
 const OptionsSaveTable = "选项数据表"
@@ -113,10 +114,10 @@ func NewOptions(headOrColName string, options any) SetOptions {
 	}
 }
 
-func (f *File) AddSheet(name string, model any, options ...SetOptions) *File {
+func (f *File) AddSheet(name string, model any, omitColNames []string, redColNames []string, options ...SetOptions) *File {
 	var err error
 
-	s := NewSheet(name, model)
+	s := NewSheet(name, model, omitColNames, redColNames)
 	for _, op := range options {
 		s.SetOptions(op.HeadOrColName, op.Options)
 	}
@@ -226,6 +227,10 @@ func (f *File) setPullDown(s *sheet) (err error) {
 	}
 
 	for index, p := range s.pd.options {
+		if _, ok := s.omitCols[int(p.col[0]-'A')]; ok {
+			continue
+		}
+
 		dvRange := excelize.NewDataValidation(true)
 		dvRange.Sqref = p.col + strconv.FormatInt(int64(s.writeRow+1), 10) + ":" + p.col + "1048576"
 
@@ -305,7 +310,16 @@ func (f *File) writeNotice(s *sheet) (err error) {
 
 func (f *File) writeHeader(s *sheet) (err error) {
 	row := s.nextWriteRow()
-	if err = f.excel().SetSheetRow(s.name, row, &s.header); err != nil {
+	headers := make([]string, 0, len(s.header))
+	for i := range s.header {
+		if _, ok := s.omitCols[i]; ok {
+			continue
+		}
+
+		headers = append(headers, s.header[i])
+	}
+
+	if err = f.excel().SetSheetRow(s.name, row, &headers); err != nil {
 		return
 	}
 	if err = f.setPartStyle(s, extra.HeaderPart); err != nil {
@@ -416,6 +430,10 @@ func (f *File) writeData(s *sheet) (err error) {
 			}
 
 			for index, o := range d {
+				if _, ok := s.omitCols[index]; ok {
+					continue
+				}
+
 				var number int
 				if number, err = excelize.ColumnNameToNumber(name); err != nil {
 					return

@@ -40,7 +40,7 @@ type Read struct {
 	payloadPool *sync.Pool
 }
 
-func (f *File) Read(payload any, sheetName string) (r *Read) {
+func (f *File) Read(payload any, sheetName string, omitColNames []string) (r *Read) {
 	r = new(Read)
 
 	if f.selectSheetName == "" && len(sheetName) == 0 {
@@ -52,7 +52,7 @@ func (f *File) Read(payload any, sheetName string) (r *Read) {
 		panic(err)
 	}
 
-	if err = r.newMetaData(payload); err != nil {
+	if err = r.newMetaData(payload, omitColNames); err != nil {
 		r.err = err
 
 		return
@@ -65,7 +65,7 @@ func (f *File) Read(payload any, sheetName string) (r *Read) {
 	return
 }
 
-func (r *Read) newMetaData(ptr any) (err error) {
+func (r *Read) newMetaData(ptr any, omitColNames []string) (err error) {
 	typ := reflect.TypeOf(ptr)
 	val := reflect.ValueOf(ptr)
 
@@ -73,6 +73,11 @@ func (r *Read) newMetaData(ptr any) (err error) {
 		err = errors.New("read function support struct type variable's Pointer type only")
 
 		return
+	}
+
+	omitColMapping := make(map[string]struct{})
+	for _, name := range omitColNames {
+		omitColMapping[name] = struct{}{}
 	}
 
 	r.metaData = newMetaData()
@@ -84,6 +89,10 @@ func (r *Read) newMetaData(ptr any) (err error) {
 		if hasTag != "" {
 			split := strings.Split(hasTag, "|")
 			if split[0] == string(extra.HeaderPart) {
+				if _, ok := omitColMapping[split[1]]; ok {
+					continue
+				}
+
 				r.metaData.addHeader(split[1])
 				r.metaData.addHeaderFieldName(split[1], field.Name)
 

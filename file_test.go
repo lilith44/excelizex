@@ -7,7 +7,7 @@ import (
 
 func TestGenerateFile(t *testing.T) {
 	t.Run("no_data_no_style", func(t *testing.T) {
-		err := New().AddSheet("helloWorld", new(TestNoStyle)).SaveAs("./test/no_data_no_style.xlsx")
+		err := New().AddSheet("helloWorld", new(TestNoStyle), nil, nil).SaveAs("./test/no_data_no_style.xlsx")
 		if err != nil {
 			t.Errorf("has_data_no_style: %s", err)
 		}
@@ -16,7 +16,7 @@ func TestGenerateFile(t *testing.T) {
 	t.Run("no_data_has_style", func(t *testing.T) {
 		ttt := new(TestHasStyle)
 		ttt.Notice = "你好世界你好世界你好世界你好世界你好世界你好世界你好世界"
-		err := New().AddSheet("helloWorld", ttt).SaveAs("./test/no_data_has_style.xlsx")
+		err := New().AddSheet("helloWorld", ttt, nil, nil).SaveAs("./test/no_data_has_style.xlsx")
 		if err != nil {
 			t.Errorf("has_data_has_style: %s", err)
 		}
@@ -35,7 +35,7 @@ func TestGenerateFile(t *testing.T) {
 			)
 		}
 
-		err := New().AddSheet("helloWorld", hasdata).SaveAs("./test/has_data_no_style.xlsx")
+		err := New().AddSheet("helloWorld", hasdata, nil, nil).SaveAs("./test/has_data_no_style.xlsx")
 		if err != nil {
 			t.Errorf("has_data_no_style: %s", err)
 		}
@@ -55,7 +55,7 @@ func TestGenerateFile(t *testing.T) {
 			)
 		}
 
-		err := New().AddSheet("helloWorld", hasdata).SaveAs("./test/has_data_has_style.xlsx", "1")
+		err := New().AddSheet("helloWorld", hasdata, nil, nil).SaveAs("./test/has_data_has_style.xlsx", "1")
 		if err != nil {
 			t.Errorf("has_data_has_style: %s", err)
 		}
@@ -75,7 +75,7 @@ func TestGenerateFile(t *testing.T) {
 			)
 		}
 
-		err := New().AddSheet("考生导入", hasdata,
+		err := New().AddSheet("考生导入", hasdata, nil, nil,
 			NewOptions("学生姓名", []string{"tom", "jerry"}),
 			NewOptions("学生号码", []string{"13380039232", "13823021932", "17889032312"}),
 			NewOptions("学生编号", []string{"1", "2", "3"}),

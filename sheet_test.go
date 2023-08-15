@@ -21,14 +21,14 @@ type TestHasStyle struct {
 
 func TestGenerateSheet(t *testing.T) {
 	t.Run("no_data_no_style", func(t *testing.T) {
-		newSheet := NewSheet("helloWorld", new(TestNoStyle))
+		newSheet := NewSheet("helloWorld", new(TestNoStyle), nil, nil)
 		fmt.Println(newSheet)
 	})
 
 	t.Run("no_data_no_style_has_notice", func(t *testing.T) {
 		ttt := new(TestNoStyle)
 		ttt.Notice = "new(TestNoStyle)new(TestNoStyle)new(TestNoStyle)"
-		newSheet := NewSheet("helloWorld", ttt)
+		newSheet := NewSheet("helloWorld", ttt, nil, nil)
 		fmt.Println(newSheet)
 	})
 
@@ -46,7 +46,7 @@ func TestGenerateSheet(t *testing.T) {
 			)
 		}
 
-		newSheet := NewSheet("helloWorld", hasdata)
+		newSheet := NewSheet("helloWorld", hasdata, nil, nil)
 		fmt.Println(newSheet)
 	})
 
@@ -64,7 +64,7 @@ func TestGenerateSheet(t *testing.T) {
 			)
 		}
 
-		newSheet := NewSheet("helloWorld", hasdata)
+		newSheet := NewSheet("helloWorld", hasdata, nil, nil)
 		fmt.Println(newSheet)
 		fmt.Println(fmt.Sprintf("%+v", newSheet.styleRef))
 	})

@@ -20,6 +20,8 @@ type sheet struct {
 	notice string
 	// 表头
 	header []string
+	// 不渲染的列号
+	omitCols map[int]struct{}
 	// 数据
 	data [][]any
 	// 下拉选项 暂时只支持单列
@@ -32,18 +34,19 @@ type sheet struct {
 	writeRow int
 }
 
-func NewSheet(sheetName string, a any) *sheet {
+func NewSheet(sheetName string, a any, omitColNames, redColNames []string) *sheet {
 	if sheetName == "" {
 		panic("sheet cannot be empty")
 	}
 
 	s := &sheet{
 		name:     sheetName,
+		omitCols: make(map[int]struct{}),
 		styleRef: make(map[string][]style.Parsed),
 		writeRow: 0,
 	}
 	if a != nil {
-		s.initSheetData(a)
+		s.initSheetData(a, omitColNames, redColNames)
 	}
 
 	return s
@@ -57,7 +60,7 @@ func (s *sheet) Excel() *File {
 	return New().AddFormattedSheets(s)
 }
 
-func (s *sheet) initSheetData(a any) {
+func (s *sheet) initSheetData(a any, omitColNames, redColNames []string) {
 	typ := reflect.TypeOf(a)
 	val := reflect.ValueOf(a)
 
@@ -70,20 +73,20 @@ func (s *sheet) initSheetData(a any) {
 	case reflect.Slice:
 		for i := 0; i < val.Len(); i++ {
 			if i == 0 {
-				s.setHeaderByStruct(val.Index(i).Interface())
+				s.setHeaderByStruct(val.Index(i).Interface(), omitColNames, redColNames)
 			}
 
 			s.data = append(s.data, getRowData(val.Index(i).Interface()))
 		}
 	case reflect.Struct:
-		s.setHeaderByStruct(a)
+		s.setHeaderByStruct(a, omitColNames, redColNames)
 	}
 
 	return
 }
 
 // SetHeaderByStruct 方法会检测结构体中的excel标签，以获取结构体表头
-func (s *sheet) setHeaderByStruct(a any) *sheet {
+func (s *sheet) setHeaderByStruct(a any, omitColNames, redColNames []string) *sheet {
 	typ := reflect.TypeOf(a)
 	val := reflect.ValueOf(a)
 	if typ.Kind() == reflect.Ptr {
@@ -93,6 +96,16 @@ func (s *sheet) setHeaderByStruct(a any) *sheet {
 
 	if typ.Kind() != reflect.Struct {
 		panic(errors.New("generate function support using struct only"))
+	}
+
+	omitColMapping := make(map[string]struct{})
+	for _, name := range omitColNames {
+		omitColMapping[name] = struct{}{}
+	}
+
+	redColMapping := make(map[string]struct{})
+	for _, name := range redColNames {
+		redColMapping[name] = struct{}{}
 	}
 
 	for i := 0; i < typ.NumField(); i++ {
@@ -123,7 +136,17 @@ func (s *sheet) setHeaderByStruct(a any) *sheet {
 				case extra.HeaderPart:
 					// todo： 现在header的style暂时不能交叉设置，原因是会被覆盖，需要在后续改动
 					s.header = append(s.header, params[1])
+					if _, ok := omitColMapping[params[1]]; ok {
+						s.omitCols[len(s.header)-1] = struct{}{}
+
+						continue
+					}
+
 					styleString := typeField.Tag.Get("style")
+					if _, ok := redColMapping[params[1]]; ok {
+						styleString = "default-header-red"
+					}
+
 					if styleString == "" {
 						continue
 					}
