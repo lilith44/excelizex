@@ -444,13 +444,20 @@ func (f *File) writeData(s *sheet) (err error) {
 					continue
 				}
 
+				var omitted uint8
+				for col := range s.omitCols {
+					if col < index {
+						omitted++
+					}
+				}
+
 				var number int
 				if number, err = excelize.ColumnNameToNumber(name); err != nil {
 					return
 				}
 
 				var cellName string
-				if cellName, err = excelize.CoordinatesToCellName(number+index, i); err != nil {
+				if cellName, err = excelize.CoordinatesToCellName(number-int(omitted)+index, i); err != nil {
 					return
 				}
 				if err = f.excel().SetCellValue(s.name, cellName, o); err != nil {
