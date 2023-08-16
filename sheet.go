@@ -151,7 +151,7 @@ func (s *sheet) setHeaderByStruct(a any, omitColNames, redColNames []string) *sh
 						continue
 					}
 
-					colName, err := excelize.ColumnNumberToName(len(s.header))
+					colName, err := excelize.ColumnNumberToName(len(s.header) - len(s.omitCols))
 					if err != nil {
 						panic(err)
 					}

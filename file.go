@@ -227,12 +227,22 @@ func (f *File) setPullDown(s *sheet) (err error) {
 	}
 
 	for index, p := range s.pd.options {
-		if _, ok := s.omitCols[int(p.col[0]-'A')]; ok {
+		colIndex := p.col[0] - 'A'
+		if _, ok := s.omitCols[int(colIndex)]; ok {
 			continue
 		}
 
+		var omitted uint8
+		for col := range s.omitCols {
+			if col < int(colIndex) {
+				omitted++
+			}
+		}
+
+		col := string(p.col[0] - omitted)
+
 		dvRange := excelize.NewDataValidation(true)
-		dvRange.Sqref = p.col + strconv.FormatInt(int64(s.writeRow+1), 10) + ":" + p.col + "1048576"
+		dvRange.Sqref = col + strconv.FormatInt(int64(s.writeRow+1), 10) + ":" + col + "1048576"
 
 		var endColunmName string
 		endColunmName, err = excelize.ColumnNumberToName(len(p.data))
