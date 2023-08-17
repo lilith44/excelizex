@@ -29,7 +29,7 @@ type sheet struct {
 
 	// 分布和style分配语句的配置
 	// v:part -> k:style string
-	styleRef map[string][]style.Parsed
+	styleRef map[string][]*style.Parsed
 	// 写入到第几行,主要用于标记生成excel中的表时，需要续写的位置
 	writeRow int
 }
@@ -42,7 +42,7 @@ func NewSheet(sheetName string, a any, omitColNames, redColNames []string) *shee
 	s := &sheet{
 		name:     sheetName,
 		omitCols: make(map[int]struct{}),
-		styleRef: make(map[string][]style.Parsed),
+		styleRef: make(map[string][]*style.Parsed),
 		writeRow: 0,
 	}
 	if a != nil {
@@ -131,7 +131,7 @@ func (s *sheet) setHeaderByStruct(a any, omitColNames, redColNames []string) *sh
 					_noticeStyle := style.TagParse(styleString).Parse()
 					_noticeStyle.Cell.StartCell = style.Cell{Col: "A", Row: 1}
 					_noticeStyle.Cell.EndCell = style.Cell{Col: "A", Row: 1}
-					s.styleRef[fmt.Sprintf("%s", extra.NoticePart)] = []style.Parsed{_noticeStyle}
+					s.styleRef[fmt.Sprintf("%s", extra.NoticePart)] = []*style.Parsed{&_noticeStyle}
 
 				case extra.HeaderPart:
 					// todo： 现在header的style暂时不能交叉设置，原因是会被覆盖，需要在后续改动
@@ -157,36 +157,18 @@ func (s *sheet) setHeaderByStruct(a any, omitColNames, redColNames []string) *sh
 					}
 					headerStyle := style.TagParse(styleString).Parse()
 
-					// todo: 待优化
-					var sp []style.Parsed
-
-					var okk bool
-					if pp, ok := s.styleRef[fmt.Sprintf("%s", extra.HeaderPart)]; ok {
-						for _, p := range pp {
-							if reflect.DeepEqual(p.StyleNames, headerStyle.StyleNames) {
-								p.Cell.EndCell = style.Cell{Col: colName, Row: 2}
-								okk = true
-							}
-							sp = append(sp, p)
-						}
-
-						if !okk {
-							headerStyle.Cell.StartCell = style.Cell{Col: colName, Row: 2}
-							headerStyle.Cell.EndCell = style.Cell{Col: colName, Row: 2}
-
-							sp = append(sp, headerStyle)
-						}
-					} else {
+					pp, ok := s.styleRef[string(extra.HeaderPart)]
+					if !ok || !reflect.DeepEqual(headerStyle.StyleNames, pp[len(pp)-1].StyleNames) {
 						headerStyle.Cell.StartCell = style.Cell{Col: colName, Row: 2}
 						headerStyle.Cell.EndCell = style.Cell{Col: colName, Row: 2}
 
-						sp = append(sp, headerStyle)
+						s.styleRef[string(extra.HeaderPart)] = append(s.styleRef[string(extra.HeaderPart)], &headerStyle)
+					} else {
+						pp[len(pp)-1].Cell.EndCell.Col = colName
 					}
 
-					s.styleRef[fmt.Sprintf("%s", extra.HeaderPart)] = sp
-
-					styleString = typeField.Tag.Get("data-style")
 					// todo :暂不支持 太累了抱歉
+					// styleString = typeField.Tag.Get("data-style")
 					//dataStyle := style.TagParse(styleString).Parse(extra.DataPart)
 					//s.styleRef[fmt.Sprintf("%s-%s", extra.DataPart, params[1])] = dataStyle
 				}
